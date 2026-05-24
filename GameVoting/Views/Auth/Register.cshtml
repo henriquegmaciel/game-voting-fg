@@ -1,0 +1,58 @@
+@model RegisterWithTokenViewModel
+@{
+    ViewData["Title"] = "Cadastro com token";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body p-4">
+                <h4 class="mb-1">Cadastro</h4>
+                <p class="text-muted small mb-4">Informe o token recebido do administrador.</p>
+
+                <form method="post">
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Token</label>
+                        <input asp-for="Token" class="form-control" placeholder="Cole o token aqui" />
+                        <span asp-validation-for="Token" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Nome de usuário</label>
+                        <input asp-for="Username" class="form-control" placeholder="Escolha um username" />
+                        <span asp-validation-for="Username" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Senha</label>
+                        <input asp-for="Password" class="form-control" placeholder="Mínimo 6 caracteres" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Confirmar senha</label>
+                        <input asp-for="ConfirmPassword" class="form-control" placeholder="Repita a senha" />
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
+                </form>
+
+                <hr />
+                <p class="text-center text-muted small mb-0">Prefere entrar com Steam?
+                    <a asp-action="SteamLogin">Login Steam <i class="bi bi-steam me-2"></i></a>
+                </p>
+
+                <p class="text-center text-muted small mb-0">Já possui cadastro?
+                    <a asp-action="Login">Login</a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>

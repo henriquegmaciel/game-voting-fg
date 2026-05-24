@@ -1,0 +1,186 @@
+@model AdminIndexViewModel
+@{
+    ViewData["Title"] = "Painel de Admin";
+}
+
+<div class="container py-3">
+    @if (TempData["Erro"] is string erro)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @erro
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Sucesso"] is string sucesso)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @sucesso
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <h4 class="mb-4">Painel de Admin</h4>
+
+    <h6 class="section-label">Membros</h6>
+    <div class="card shadow mb-4">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Registrado em</th>
+                        <th>Role</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var member in Model.Members)
+                    {
+                        <tr>
+                            <td>@member.DisplayName</td>
+                            <td>@member.RegisteredAt.ToString("dd/MM/yyyy")</td>
+                            <td>
+                                @if (member.IsAdmin)
+                                {
+                                    <span class="badge bg-warning text-dark">Admin</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Membro</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (!member.IsAdmin)
+                                {
+                                    <form method="post" asp-action="RemoveMember"
+                                          onsubmit="return confirm('Remover @member.DisplayName? Isso removerá qualquer voto do membro.')">
+                                        <input type="hidden" name="userId" value="@member.UserId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <h6 class="section-label mt-4">Votos por jogo</h6>
+
+            @foreach (var gameVote in Model.GameVotes.Where(g => g.Votes.Any()))
+            {
+                <div class="card shadow mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <span class="fw-semibold">@gameVote.Title</span>
+                                <span class="badge bg-secondary ms-2">@gameVote.ListType</span>
+                            </div>
+                            <small class="text-muted">@gameVote.Votes.Count() voto(s)</small>
+                        </div>
+                        <table class="table table-dark table-sm mb-0">
+                            <tbody>
+                                @foreach (var vote in gameVote.Votes)
+                                {
+                                    <tr>
+                                        <td>@vote.DisplayName</td>
+                                        <td class="text-muted small">@vote.VotedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        </td>
+                                        <td class="text-end">
+                                            <form method="post" asp-action="RemoveVote">
+                                                <input type="hidden" name="voteId" value="@vote.VoteId" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Remover voto de @vote.DisplayName?')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <h6 class="section-label mt-4">Tokens de cadastro</h6>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="post" asp-action="GenerateToken" class="d-flex gap-2 mb-3">
+                <input type="text" name="label" class="form-control form-control-sm"
+                       placeholder="Identificação (ex: Nome do usuário)" />
+                <button type="submit" class="btn btn-sm btn-primary text-nowrap">Gerar token</button>
+            </form>
+
+            @if (Model.Tokens.Any())
+            {
+                <table class="table table-dark table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Identificação</th>
+                            <th>Token</th>
+                            <th>Criado em</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var token in Model.Tokens)
+                        {
+                            <tr>
+                                <td>@token.Label</td>
+                                <td>
+                                    <code id="token-@token.Id">@token.Token</code>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1"
+                                            onclick="copyToken('@token.Token', this)" title="Copiar">
+                                        <i class="bi bi-clipboard"></i>
+                                    </button>
+                                </td>
+                                <td class="text-muted small">@token.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (token.IsUsed)
+                                    {
+                                        <span class="badge bg-secondary">Usado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Disponível</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (!token.IsUsed)
+                                    {
+                                        <form method="post" asp-action="RevokeToken">
+                                            <input type="hidden" name="tokenId" value="@token.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Revogar este token?')">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted small mb-0">Nenhum token gerado ainda.</p>
+            }
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function copyToken(token, btn) {
+        navigator.clipboard.writeText(token.trim());
+        btn.innerHTML = '<i class="bi bi-check2"></i>';
+        setTimeout(() => btn.innerHTML = '<i class="bi bi-clipboard"></i>', 2000);
+    }
+</script>

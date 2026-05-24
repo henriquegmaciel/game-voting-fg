@@ -1,0 +1,58 @@
+@model RankingItemViewModel
+
+<div class="game-row game-item" data-title="@Model.Title.ToLower()">
+    <div class="flex-grow-1 min-w-0">
+        <div class="fw-semibold text-truncate">@Model.Title</div>
+        <div class="d-flex gap-2 align-items-center">
+            <small class="text-muted">
+                <span class="badge bg-secondary">@Model.ListType</span>
+                @if (!string.IsNullOrEmpty(Model.StorePageUrl))
+                {
+                    <a href="@Model.StorePageUrl" target="_blank"
+                       class="badge bg-secondary btn btn-sm btn-outline-secondary" title="Ver na loja">Página
+                    </a>
+                }
+                <span class="badge bg-secondary">@Model.Genre</span>
+                <span class="badge bg-secondary">@Model.ReleaseYear</span>
+            </small>
+        </div>
+    </div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="text-center me-2" style="min-width: 44px">
+            <div class="fw-bold text-accent">@Model.VoteCount</div>
+            <div style="font-size:.7rem" class="text-muted">voto@(Model.VoteCount != 1 ? "s" : "")</div>
+        </div>
+    }
+
+    <div class="d-flex gap-2 align-items-center">
+        @if (Model.UserAlreadyVoted)
+        {
+            <button class="btn btn-sm btn-primary vote-btn" data-game-id="@Model.GameId" data-action="remove">
+                Remover voto
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-sm btn-outline-primary vote-btn" data-game-id="@Model.GameId" data-action="cast">
+                Votar
+            </button>
+        }
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-controller="Game" asp-action="Edit" asp-route-id="@Model.GameId" class="btn btn-sm btn-outline-secondary"
+               title="Editar">
+                <i class="bi bi-pencil"></i>
+            </a>
+
+            <form method="post" asp-controller="Game" asp-action="Remove" class="d-flex gap-1">
+                <input type="hidden" name="gameId" value="@Model.GameId" />
+                <button type="button" class="btn btn-sm btn-outline-danger" title="Remover jogo"
+                        onclick="openDeleteModal(@Model.GameId, '@Model.Title.Replace(oldValue: "'", newValue: "\\'")' )">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        }
+    </div>
+</div>

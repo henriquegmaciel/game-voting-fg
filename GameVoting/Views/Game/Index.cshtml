@@ -1,0 +1,145 @@
+@model GameIndexViewModel
+@Html.AntiForgeryToken()
+
+@{
+    ViewData["Title"] = ViewData["ActiveList"]?.ToString() ?? "Jogos";
+    var activeList = ViewData["ActiveList"]?.ToString();
+}
+
+<div class="container py-3">
+
+    @if (TempData["Erro"] is string erro)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @erro
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Sucesso"] is string sucesso)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @sucesso
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap">
+        <div class="d-flex gap-2">
+            <a asp-action="Coop" class="btn btn-sm @(activeList == "Coop" ? "btn-primary" : "btn-outline-secondary")">
+                Coop
+            </a>
+            <a asp-action="Multiplayer"
+               class="btn btn-sm @(activeList == "Multiplayer" ? "btn-primary" : "btn-outline-secondary")">
+                Multiplayer
+            </a>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-action="All" class="btn btn-sm @(activeList == "All" ? "btn-primary" : "btn-outline-secondary")">
+                    Todos
+                </a>
+            }
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="search-wrap">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="searchInput" class="form-control form-control-sm search-input"
+                       placeholder="Buscar jogo..." autocomplete="off" />
+            </div>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-action="Create" class="btn btn-sm btn-primary" title="Adicionar jogo">+</a>
+            }
+        </div>
+    </div>
+
+    <div class="game-list" id="gameList">
+        @foreach (RankingItemViewModel game in Model.Ranking)
+        {
+            @await Html.PartialAsync("_GameRow", game)
+        }
+    </div>
+    <div id="listEmpty" class="text-center py-4 text-muted d-none">Nenhum jogo encontrado.</div>
+
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h6 class="modal-title">Remover jogo</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Tem certeza que deseja remover <strong id="deleteGameTitle"></strong>?
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-dismiss="modal">Cancelar</button>
+                    <form method="post" asp-action="Remove" id="deleteGameForm">
+                        <input type="hidden" name="gameId" id="deleteGameId" />
+                        <button type="submit" class="btn btn-sm btn-danger">Remover</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.getElementById('searchInput').addEventListener('input', function () {
+        filterGames(this.value);
+    });
+
+    function filterGames(query) {
+        const q = query.toLowerCase();
+        let visible = 0;
+        document.querySelectorAll('#gameList .game-item').forEach(function (item) {
+            const match = item.dataset.title.includes(q);
+            item.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        document.getElementById('listEmpty').classList.toggle('d-none', visible > 0);
+    }
+
+    function openDeleteModal(gameId, title) {
+        document.getElementById('deleteGameId').value = gameId;
+        document.getElementById('deleteGameTitle').textContent = title;
+        new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+    }
+
+    document.addEventListener('click', async function (e) {
+        const btn = e.target.closest('.vote-btn');
+        if (!btn) return;
+
+        const gameId = btn.dataset.gameId;
+        const action = btn.dataset.action;
+        const url = action === 'cast' ? '/Vote/Cast' : '/Vote/Remove';
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token
+            },
+            body: `gameId=${gameId}&__RequestVerificationToken=${token}`
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            if (action === 'cast') {
+                btn.textContent = 'Remover voto';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary');
+                btn.dataset.action = 'remove';
+            } else {
+                btn.textContent = 'Votar';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline-primary');
+                btn.dataset.action = 'cast';
+            }
+        } else {
+            alert(result.message);
+        }
+    });
+</script>

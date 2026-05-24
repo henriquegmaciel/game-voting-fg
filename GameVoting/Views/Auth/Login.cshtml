@@ -1,0 +1,61 @@
+@model LoginWithPasswordViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body p-4">
+
+                @if (TempData["Erro"] is string erro)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @erro
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @if (TempData["Sucesso"] is string sucesso)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @sucesso
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                <h4 class="mb-4">Login</h4>
+
+                <form method="post">
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Nome de usuário</label>
+                        <input asp-for="Username" class="form-control" placeholder="Seu username" />
+                        <span asp-validation-for="Username" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Senha</label>
+                        <input asp-for="Password" class="form-control" placeholder="••••••" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                </form>
+
+                <hr />
+                <p class="text-center text-muted small mb-0">Prefere entrar com Steam?
+                    <a asp-action="SteamLogin">Login Steam <i class="bi bi-steam me-2"></i></a>
+                </p>
+
+                <p class="text-center text-muted small mb-0">Não quer entrar com Steam?
+                    <a asp-action="Register">Cadastre-se</a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>
