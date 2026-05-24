@@ -66,6 +66,7 @@ builder.Services.AddScoped<IVoteService, VoteService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ISteamService, SteamService>();
 builder.Services.AddScoped<IRegistrationTokenService, RegistrationTokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddHttpClient<ISteamService, SteamService>();
 
@@ -85,8 +86,7 @@ using (var scope = app.Services.CreateScope())
     if (!await roleManager.RoleExistsAsync("Member"))
         await roleManager.CreateAsync(new IdentityRole("Member"));
 
-    var adminEmail = builder.Configuration["AdminEmail"]!;
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+    var adminUser = await userManager.FindByNameAsync(builder.Configuration["AdminEmail"]!);
     if (adminUser is not null && !await userManager.IsInRoleAsync(adminUser, "Admin"))
         await userManager.AddToRoleAsync(adminUser, "Admin");
 }
