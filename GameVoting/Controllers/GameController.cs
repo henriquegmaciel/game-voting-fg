@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace GameVoting.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class GameController : Controller
 {
     private readonly IGameService _gameService;
@@ -16,8 +16,10 @@ public class GameController : Controller
         _gameService = gameService;
     }
 
+    [AllowAnonymous]
     public IActionResult Index() => RedirectToAction("Coop");
 
+    [AllowAnonymous]
     public IActionResult Coop()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -26,6 +28,7 @@ public class GameController : Controller
         return View("Index", viewModel);
     }
 
+    [AllowAnonymous]
     public IActionResult Multiplayer()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -34,7 +37,6 @@ public class GameController : Controller
         return View("Index", viewModel);
     }
 
-    [Authorize(Roles = "Admin")]
     public IActionResult All()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -43,13 +45,11 @@ public class GameController : Controller
         return View("Index", viewModel);
     }
 
-    [Authorize(Roles = "Admin")]
     public IActionResult Create()
     {
         return View();
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPost]
     public IActionResult Create(CreateGameViewModel model)
     {
@@ -70,7 +70,6 @@ public class GameController : Controller
         return RedirectToAction("Index");
     }
 
-    [Authorize(Roles = "Admin")]
     [HttpPost]
     public IActionResult Remove(int gameId)
     {
