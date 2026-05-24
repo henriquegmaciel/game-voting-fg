@@ -8,4 +8,5 @@ public interface IRegistrationTokenRepository
     IEnumerable<RegistrationToken> GetAll();
     void Add(RegistrationToken token);
     void Update(RegistrationToken token);
+    RegistrationToken? GetActiveBySteamId(string steamId);
 }

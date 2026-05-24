@@ -27,4 +27,8 @@ public class RegistrationTokenRepository : IRegistrationTokenRepository
         _context.RegistrationTokens.Update(token);
         _context.SaveChanges();
     }
+
+    public RegistrationToken? GetActiveBySteamId(string steamId)
+    => _context.RegistrationTokens
+        .FirstOrDefault(t => t.SteamId == steamId && !t.IsUsed);
 }
