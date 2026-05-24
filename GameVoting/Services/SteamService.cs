@@ -59,4 +59,36 @@ public class SteamService : ISteamService
             return false;
         }
     }
+
+    public async Task<string?> ResolveSteamIdAsync(string profileUrl)
+    {
+        try
+        {
+            if (profileUrl.Contains("/profiles/")) //ID numérico (/profiles/76561198XXXXXXXXX)
+            {
+                return profileUrl.TrimEnd('/').Split('/').Last();
+            }
+
+            if (profileUrl.Contains("/id/")) //ID personalizado (/id/nomePersonalizado)
+            {
+                var vanityId = profileUrl.TrimEnd('/').Split('/').Last();
+                var url = $"https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key={_apiKey}&vanityurl={vanityId}";
+                var response = await _httpClient.GetAsync(url);
+                if (!response.IsSuccessStatusCode) return null;
+
+                var json = await response.Content.ReadAsStringAsync();
+                var doc = JsonDocument.Parse(json);
+                var success = doc.RootElement.GetProperty("response").GetProperty("success").GetInt32();
+                if (success != 1) return null;
+
+                return doc.RootElement.GetProperty("response").GetProperty("steamid").GetString();
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
