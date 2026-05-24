@@ -35,7 +35,8 @@ public class AdminService : IAdminService
                 UserId = user.Id,
                 DisplayName = user.DisplayName,
                 RegisteredAt = user.RegisteredAt,
-                IsAdmin = isAdmin
+                IsAdmin = isAdmin,
+                AdminAlias = user.AdminAlias
             });
         }
 

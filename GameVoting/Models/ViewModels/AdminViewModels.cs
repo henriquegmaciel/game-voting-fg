@@ -8,6 +8,7 @@ public class AdminMemberViewModel
     public string DisplayName { get; set; } = string.Empty;
     public DateTime RegisteredAt { get; set; }
     public bool IsAdmin { get; set; }
+    public string? AdminAlias { get; set; }
 }
 
 public class AdminIndexViewModel

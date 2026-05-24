@@ -11,4 +11,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Game> Games => Set<Game>();
     public DbSet<Vote> Votes => Set<Vote>();
     public DbSet<RegistrationToken> RegistrationTokens => Set<RegistrationToken>();
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        builder.Entity<ApplicationUser>()
+            .HasIndex(u => u.SteamId)
+            .IsUnique();
+    }
 }
