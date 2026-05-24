@@ -13,17 +13,20 @@ public class AuthController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ISteamService _steamService;
     private readonly IRegistrationTokenService _tokenService;
+    private readonly IUserService _userService;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ISteamService steamService,
-        IRegistrationTokenService tokenService)
+        IRegistrationTokenService tokenService,
+        IUserService userService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _steamService = steamService;
         _tokenService = tokenService;
+        _userService = userService;
     }
 
     [HttpGet]
@@ -42,10 +45,22 @@ public class AuthController : Controller
 
         var token = _tokenService.GetAll().First(t => t.Token == model.Token);
 
+        if (!string.IsNullOrEmpty(token.SteamId))
+        {
+            var existingUser = await _userService.FindBySteamIdAsync(token.SteamId);
+            if (existingUser is not null)
+            {
+                ModelState.AddModelError(string.Empty, "Este token está vinculado a um perfil Steam já cadastrado.");
+                return View(model);
+            }
+        }
+
         var user = new ApplicationUser
         {
             UserName = model.Username,
-            DisplayName = token.Label,
+            DisplayName = model.Username,
+            AdminAlias = token.Label,
+            SteamId = token.SteamId!,
             RegisteredAt = DateTime.UtcNow
         };
 
@@ -113,66 +128,99 @@ public class AuthController : Controller
         var steamId = info.ProviderKey.Split('/').Last();
         var steamName = info.Principal.Identity?.Name ?? steamId;
 
-        var isInGroup = await _steamService.IsUserInGroupAsync(steamId);
-        if (!isInGroup)
-        {
-            await _signInManager.SignOutAsync();
-            TempData["AuthErro"] = "Você precisa ser membro do grupo Steam para acessar.";
-            return RedirectToAction("Login");
-        }
+        if (!await _steamService.IsUserInGroupAsync(steamId))
+            return await DenySteamAccess();
 
         var result = await _signInManager.ExternalLoginSignInAsync(
             info.LoginProvider, info.ProviderKey, isPersistent: true);
 
         if (result.Succeeded)
-        {
-            var existingUser = await _userManager.FindByNameAsync(steamId);
-            if (existingUser is not null && existingUser.DisplayName != steamName)
-            {
-                UpdateUserDisplayName(existingUser, steamName);
-                UpdateDisplayNameClaim(existingUser, steamName);
-            }
-            return LocalRedirect(returnUrl ?? "/");
-        }
+            return await HandleExistingSteamLogin(steamId, steamName, returnUrl);
 
+        var existingBySteamId = await _userService.FindBySteamIdAsync(steamId);
+        if (existingBySteamId is not null)
+            return await HandleTokenUserSteamLink(existingBySteamId, info, steamId, steamName, returnUrl);
+
+        return await HandleNewSteamUser(info, steamId, steamName, returnUrl);
+    }
+
+    private async Task<IActionResult> DenySteamAccess()
+    {
+        await _signInManager.SignOutAsync();
+        TempData["Erro"] = "Você precisa ser membro do grupo Steam para acessar.";
+        return RedirectToAction("Login");
+    }
+
+    private async Task<IActionResult> HandleExistingSteamLogin(string steamId, string steamName, string? returnUrl)
+    {
+        _tokenService.RevokeBySteamId(steamId);
+        var user = await _userManager.FindByNameAsync(steamId);
+        if (user is not null && user.DisplayName != steamName)
+        {
+            await UpdateUserDisplayNameAsync(user, steamName);
+            await UpdateDisplayNameClaimAsync(user, steamName);
+        }
+        return LocalRedirect(returnUrl ?? "/");
+    }
+
+    private async Task<IActionResult> HandleTokenUserSteamLink(
+        ApplicationUser user,
+        ExternalLoginInfo info,
+        string steamId,
+        string steamName,
+        string? returnUrl)
+    {
+        await _userManager.AddLoginAsync(user, info);
+        await UpdateUserDisplayNameAsync(user, steamName);
+        await EnsureDisplayNameClaimAsync(user, steamName);
+        await _signInManager.SignInAsync(user, isPersistent: true);
+        _tokenService.RevokeBySteamId(steamId);
+        return LocalRedirect(returnUrl ?? "/");
+    }
+
+    private async Task<IActionResult> HandleNewSteamUser(
+        ExternalLoginInfo info,
+        string steamId,
+        string steamName,
+        string? returnUrl)
+    {
         var user = new ApplicationUser
         {
             UserName = steamId,
             DisplayName = steamName,
+            SteamId = steamId,
             RegisteredAt = DateTime.UtcNow
         };
 
-        var createResult = await _userManager.CreateAsync(user);
-        if (createResult.Succeeded)
-        {
-            await _userManager.AddLoginAsync(user, info);
-            await _userManager.AddClaimAsync(user, new Claim("DisplayName", steamName));
-            await _signInManager.SignInAsync(user, isPersistent: true);
+        var result = await _userManager.CreateAsync(user);
+        if (!result.Succeeded)
+            return RedirectToAction("Login");
 
-            return LocalRedirect(returnUrl ?? "/");
-        }
-
-        return RedirectToAction("Login");
+        await _userManager.AddLoginAsync(user, info);
+        await _userManager.AddClaimAsync(user, new Claim("DisplayName", steamName));
+        await _signInManager.SignInAsync(user, isPersistent: true);
+        _tokenService.RevokeBySteamId(steamId);
+        return LocalRedirect(returnUrl ?? "/");
     }
 
-    private async void UpdateUserDisplayName(ApplicationUser user, string newName)
+    private async Task UpdateUserDisplayNameAsync(ApplicationUser user, string steamName)
     {
-        user.DisplayName = newName;
+        user.DisplayName = steamName;
         await _userManager.UpdateAsync(user);
     }
 
-    private async void UpdateDisplayNameClaim(ApplicationUser user, string newName)
+    private async Task UpdateDisplayNameClaimAsync(ApplicationUser user, string steamName)
     {
-        var oldClaim = await GetDisplayNameClaim(user);
-        if (oldClaim is not null)
-            await _userManager.ReplaceClaimAsync(user, oldClaim, new Claim("DisplayName", newName));
-        else
-            await _userManager.AddClaimAsync(user, new Claim("DisplayName", newName));
+        var claims = await _userManager.GetClaimsAsync(user);
+        var existing = claims.FirstOrDefault(c => c.Type == "DisplayName");
+        if (existing is not null)
+            await _userManager.ReplaceClaimAsync(user, existing, new Claim("DisplayName", steamName));
     }
 
-    private async Task<Claim?> GetDisplayNameClaim(ApplicationUser user)
+    private async Task EnsureDisplayNameClaimAsync(ApplicationUser user, string steamName)
     {
-        return (await _userManager.GetClaimsAsync(user))
-                    .FirstOrDefault(c => c.Type == "DisplayName");
+        var claims = await _userManager.GetClaimsAsync(user);
+        if (!claims.Any(c => c.Type == "DisplayName"))
+            await _userManager.AddClaimAsync(user, new Claim("DisplayName", steamName));
     }
 }
