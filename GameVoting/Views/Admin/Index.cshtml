@@ -28,6 +28,7 @@
                 <thead>
                     <tr>
                         <th>Nome</th>
+                        <th>Apelido (visível só para admin)</th>
                         <th>Registrado em</th>
                         <th>Role</th>
                         <th></th>
@@ -38,6 +39,17 @@
                     {
                         <tr>
                             <td>@member.DisplayName</td>
+                            <td>
+                                <form method="post" asp-action="UpdateAlias" class="d-flex gap-1">
+                                    <input type="hidden" name="userId" value="@member.UserId" />
+                                    <input type="text" name="alias" value="@member.AdminAlias"
+                                           class="form-control form-control-sm"
+                                           placeholder="Apelido (visível só para admin)" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                            </td>
                             <td>@member.RegisteredAt.ToString("dd/MM/yyyy")</td>
                             <td>
                                 @if (member.IsAdmin)
@@ -110,9 +122,12 @@
 
     <div class="card shadow mb-4">
         <div class="card-body">
-            <form method="post" asp-action="GenerateToken" class="d-flex gap-2 mb-3">
+
+            <form method="post" asp-action="GenerateToken" class="d-flex gap-2 mb-3 flex-wrap">
                 <input type="text" name="label" class="form-control form-control-sm"
-                       placeholder="Identificação (ex: Nome do usuário)" />
+                       placeholder="Apelido (visível somente para admin)" />
+                <input type="text" name="steamProfileUrl" class="form-control form-control-sm"
+                       placeholder="Link do perfil Steam do membro" />
                 <button type="submit" class="btn btn-sm btn-primary text-nowrap">Gerar token</button>
             </form>
 
@@ -121,7 +136,7 @@
                 <table class="table table-dark table-sm mb-0">
                     <thead>
                         <tr>
-                            <th>Identificação</th>
+                            <th>Apelido</th>
                             <th>Token</th>
                             <th>Criado em</th>
                             <th>Status</th>
