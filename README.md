@@ -1,6 +1,6 @@
 ## Visão Geral
 
-Jogatinas é um sistema web de votação e gestão de sessões de jogos.
+Jogatinas é um sistema web de votação de jogos.
 
 ---
 ## Funcionalidades Atuais
@@ -8,7 +8,7 @@ Jogatinas é um sistema web de votação e gestão de sessões de jogos.
 - O administrador pode cadastrar, editar e remover jogos das listas
 - Campos disponíveis: título (obrigatório), lista, gênero, ano de lançamento, URL da página na loja
 - A lista possui dois valores possíveis: coop e multiplayer
-- A URL da loja é validada para aceitar apenas domínios confiáveis, sendo eles, atualmente: `store.steampowered.com`, `epicgames.com`, `gog.com`, `microsoft.com`, `xbox.com`, `nintendo.com`, `playstation.com`, `ubisoft.com`, `ea.com`, `battle.net`, `itch.io`
+- A URL da loja é validada apenas como sendo um URL válida
 ### Votação
 - Cada usuário autenticado pode votar em quantos jogos quiser
 - É permitido apenas um voto por usuário por jogo
